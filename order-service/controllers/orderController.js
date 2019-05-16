@@ -2,6 +2,8 @@
 
 var _ = require('lodash');
 const Order = require('../models/ordersModel.js');
+const Item = require('../models/itemsModel.js');
+var async = require('async');
 
 var validationError = function (res, err) {
     return res.json(422, err);
@@ -24,13 +26,38 @@ exports.createorders = function (req, res) {
 exports.getAllorders = function (req, res) {
     console.log(req.params);
     if (req.params.vendor_id != null) {
-        Order.find({})
-            .populate('item_id',{ belongs_To: req.params.vendor_id })
-            .exec(function (err, orders) {
-                if (err) return validationError(res, err);
-                console.log(orders);
-                res.status(200).json(orders);
-            })
+        /*  Order.find({})
+             //  .populate('item_id',{ 'belongs_To': req.params.vendor_id })
+             .populate({
+                 path: 'item_id',
+                 select: 'item_id -_id',
+                 match: { 'belongs_To': req.params.vendor_id }
+             })
+             .exec(function (err, orders) {
+                 if (err) return validationError(res, err);
+                 console.log(orders);
+                 res.status(200).json(orders);
+             }) */
+        async.waterfall([
+            (callback) =>
+                Order.find({}).exec(callback),
+
+            (orders, callback) => {
+                if (!orders) callback(new Error('not found'));  // throw here if not found
+                // find Items
+                Item
+                    .find({ 'belongs_To': req.params.vendor_id })
+                    .populate('belongs_To')
+                    .exec(callback);
+            }
+        ], function (err, docs) {
+            if (err) {
+                return validationError(res,err);
+            }
+
+            console.log(docs);
+            res.status(200).json(docs);
+        });
     }
     else {
         res.json(400, 'no orders available');

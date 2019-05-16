@@ -4,7 +4,7 @@ var mongoose = require('mongoose'),
     Schema = mongoose.Schema;
 require('./itemsModel');
 require('./userModel');
-
+require('./vendorModel');
 
 
 var OrderSchema = new Schema({
